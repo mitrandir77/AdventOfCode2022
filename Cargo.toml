@@ -12,6 +12,6 @@ regex = "1.7.0"
 itertools = "0.10.5"
 text_io = "0.1.12"
 
-#[[bin]]
-#name = "01a_sonar_sweep"
-#path = "src/01a_sonar_sweep.rs"
+[[bin]]
+name = "01a_calorie_counting"
+path = "src/01a_calorie_counting.rs"
