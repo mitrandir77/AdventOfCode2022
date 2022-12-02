@@ -1,0 +1,17 @@
+[package]
+name = "AdventOfCode2022"
+version = "0.1.0"
+authors = ["Mateusz Kwapich <mateusz@kwapich.it>"]
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+maplit = "1.0.2"
+multiset = "0.0.5"
+regex = "1.7.0"
+itertools = "0.10.5"
+text_io = "0.1.12"
+
+#[[bin]]
+#name = "01a_sonar_sweep"
+#path = "src/01a_sonar_sweep.rs"
