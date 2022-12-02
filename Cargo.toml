@@ -19,3 +19,7 @@ path = "src/01a_calorie_counting.rs"
 [[bin]]
 name = "01b_calorie_counting"
 path = "src/01b_calorie_counting.rs"
+
+[[bin]]
+name = "02a_rock_paper_scissors"
+path = "src/02a_rock_paper_scissors.rs"
