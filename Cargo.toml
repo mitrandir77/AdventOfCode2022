@@ -15,3 +15,7 @@ text_io = "0.1.12"
 [[bin]]
 name = "01a_calorie_counting"
 path = "src/01a_calorie_counting.rs"
+
+[[bin]]
+name = "01b_calorie_counting"
+path = "src/01b_calorie_counting.rs"
