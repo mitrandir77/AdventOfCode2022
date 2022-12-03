@@ -27,3 +27,11 @@ path = "src/02a_rock_paper_scissors.rs"
 [[bin]]
 name = "02b_rock_paper_scissors"
 path = "src/02b_rock_paper_scissors.rs"
+
+[[bin]]
+name = "03a_rucksack_reorganizations"
+path = "src/03a_rucksack_reorganizations.rs"
+
+[[bin]]
+name = "03b_rucksack_reorganizations"
+path = "src/03b_rucksack_reorganizations.rs"
