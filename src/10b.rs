@@ -2,10 +2,10 @@
 // (c) 2002 Mateusz Kwapich
 
 use anyhow::Result;
-use std::io::BufRead;
 use scan_rules::scan;
-#[macro_use] extern crate scan_rules;
-
+use std::io::BufRead;
+#[macro_use]
+extern crate scan_rules;
 
 fn main() -> Result<()> {
     let stdin = std::io::stdin();
@@ -14,17 +14,15 @@ fn main() -> Result<()> {
     let mut x = 1;
 
     let render = |cycle_no: i32, x: i32| {
-        if (cycle_no-1) % 40 == 0 {
+        if (cycle_no - 1) % 40 == 0 {
             println!();
         }
-        if (((cycle_no-1) % 40) - x).abs() <= 1 {
+        if (((cycle_no - 1) % 40) - x).abs() <= 1 {
             print!("#");
-        }
-        else {
+        } else {
             print!(".");
         }
     };
-
 
     render(cycle_no, x);
     for line in stdin.lock().lines() {
@@ -41,8 +39,8 @@ fn main() -> Result<()> {
                 x += arg;
                 render(cycle_no, x);
             },
-        ).unwrap();
-
+        )
+        .unwrap();
     }
     Ok(())
 }
