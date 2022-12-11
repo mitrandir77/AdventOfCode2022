@@ -92,3 +92,10 @@ path = "src/10a.rs"
 name = "10b"
 path = "src/10b.rs"
 
+[[bin]]
+name = "11a"
+path = "src/11a.rs"
+[[bin]]
+name = "11b"
+path = "src/11b.rs"
+
