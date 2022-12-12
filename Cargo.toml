@@ -88,6 +88,7 @@ path = "src/09b.rs"
 [[bin]]
 name = "10a"
 path = "src/10a.rs"
+
 [[bin]]
 name = "10b"
 path = "src/10b.rs"
@@ -95,7 +96,15 @@ path = "src/10b.rs"
 [[bin]]
 name = "11a"
 path = "src/11a.rs"
+
 [[bin]]
 name = "11b"
 path = "src/11b.rs"
 
+[[bin]]
+name = "12a"
+path = "src/12a.rs"
+
+[[bin]]
+name = "12b"
+path = "src/12b.rs"
