@@ -4,67 +4,72 @@
 use anyhow::Result;
 use itertools::EitherOrBoth::*;
 use itertools::Itertools;
-use json::JsonValue;
+use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::io::BufRead;
 
-fn compare(first: &JsonValue, second: &JsonValue) -> Option<bool> {
-    match (first, second) {
-        (JsonValue::Number(a), JsonValue::Number(b)) => {
-            let a: f64 = (*a).into();
-            let b: f64 = (*b).into();
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[serde(untagged)]
+enum Packet {
+    Number(i32),
+    List(Vec<Packet>),
+}
 
-            if a != b {
-                return Some(a < b);
+impl Ord for Packet {
+    fn cmp(&self, other: &Packet) -> Ordering {
+        match (self, other) {
+            (Packet::Number(a), Packet::Number(b)) => {
+                if a != b {
+                    return a.cmp(b);
+                }
             }
-        }
-        (JsonValue::Array(a), JsonValue::Array(b)) => {
-            for pair in a.iter().zip_longest(b) {
-                match pair {
-                    Both(l, r) => {
-                        if let Some(res) = compare(l, r) {
-                            return Some(res);
+            (Packet::List(a), Packet::List(b)) => {
+                for pair in a.iter().zip_longest(b) {
+                    match pair {
+                        Both(l, r) => {
+                            let res = l.cmp(r);
+                            if res.is_ne() {
+                                return res;
+                            }
                         }
+                        Left(_l) => return Ordering::Greater,
+                        Right(_r) => return Ordering::Less,
                     }
-                    Left(_l) => return Some(false),
-                    Right(_r) => return Some(true),
+                }
+            }
+            (al @ Packet::List(_a), Packet::Number(b)) => {
+                let res = al.cmp(&Packet::List(vec![Packet::Number(*b)]));
+                if res.is_ne() {
+                    return res;
+                }
+            }
+            (Packet::Number(a), bl @ Packet::List(_b)) => {
+                let res = Packet::List(vec![Packet::Number(*a)]).cmp(bl);
+                if res.is_ne() {
+                    return res;
                 }
             }
         }
-        (JsonValue::Array(a), JsonValue::Number(b)) => {
-            if let Some(res) = compare(
-                &JsonValue::Array(a.to_vec()),
-                &JsonValue::Array(vec![JsonValue::Number(*b)]),
-            ) {
-                return Some(res);
-            }
-        }
-        (JsonValue::Number(a), JsonValue::Array(b)) => {
-            if let Some(res) = compare(
-                &JsonValue::Array(vec![JsonValue::Number(*a)]),
-                &JsonValue::Array(b.to_vec()),
-            ) {
-                return Some(res);
-            }
-        }
-        (a, b) => {
-            panic!("unexpected value {} {}", a, b);
-        }
+        Ordering::Equal
     }
-    None
+}
+
+impl PartialOrd for Packet {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 fn main() -> Result<()> {
     let stdin = std::io::stdin();
-    let mut sum = 0;
-    for (i, pair) in (stdin.lock().lines().chunks(3).into_iter()).enumerate() {
+    let mut sum: usize= 0;
+    for (i, pair) in stdin.lock().lines().chunks(3).into_iter().enumerate() {
         let pair: Vec<_> = pair.collect();
 
-        let first = pair[0].as_ref().unwrap().to_owned();
-        let first = json::parse(&first)?;
-        let second = pair[1].as_ref().unwrap().to_owned();
-        let second = json::parse(&second)?;
+        let first: Packet = serde_json::from_str(pair[0].as_ref().unwrap())?;
+        let second: Packet = serde_json::from_str(pair[1].as_ref().unwrap())?;
 
-        if compare(&first, &second).unwrap() {
+        if first.cmp(&second).is_le() {
             sum += i + 1;
         }
     }

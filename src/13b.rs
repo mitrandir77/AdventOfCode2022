@@ -4,59 +4,60 @@
 use anyhow::Result;
 use itertools::EitherOrBoth::*;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::io::BufRead;
-use serde::{Deserialize, Serialize};
 
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(untagged)]
 enum Packet {
     Number(i32),
-    List(Vec<Packet>)
+    List(Vec<Packet>),
 }
 
-fn compare(first: &Packet, second: &Packet) -> Ordering {
-    match (first, second) {
-        (Packet::Number(a), Packet::Number(b)) => {
-            if a != b {
-                return a.cmp(b);
+impl Ord for Packet {
+    fn cmp(&self, other: &Packet) -> Ordering {
+        match (self, other) {
+            (Packet::Number(a), Packet::Number(b)) => {
+                if a != b {
+                    return a.cmp(b);
+                }
             }
-        }
-        (Packet::List(a), Packet::List(b)) => {
-            for pair in a.iter().zip_longest(b) {
-                match pair {
-                    Both(l, r) => {
-                        let res = compare(l, r);
-                        if res.is_ne() {
-                            return res;
+            (Packet::List(a), Packet::List(b)) => {
+                for pair in a.iter().zip_longest(b) {
+                    match pair {
+                        Both(l, r) => {
+                            let res = l.cmp(r);
+                            if res.is_ne() {
+                                return res;
+                            }
                         }
+                        Left(_l) => return Ordering::Greater,
+                        Right(_r) => return Ordering::Less,
                     }
-                    Left(_l) => return Ordering::Greater,
-                    Right(_r) => return Ordering::Less,
+                }
+            }
+            (al @ Packet::List(_a), Packet::Number(b)) => {
+                let res = al.cmp(&Packet::List(vec![Packet::Number(*b)]));
+                if res.is_ne() {
+                    return res;
+                }
+            }
+            (Packet::Number(a), bl @ Packet::List(_b)) => {
+                let res = Packet::List(vec![Packet::Number(*a)]).cmp(bl);
+                if res.is_ne() {
+                    return res;
                 }
             }
         }
-        (al @ Packet::List(_a), Packet::Number(b)) => {
-            let res = compare(
-                al,
-                &Packet::List(vec![Packet::Number(*b)]),
-            );
-            if res.is_ne() {
-                return res;
-            }
-        }
-        (Packet::Number(a), bl @ Packet::List(_b)) => {
-            let res = compare(
-                &Packet::List(vec![Packet::Number(*a)]),
-                bl
-            );
-            if res.is_ne() {
-                return res;
-            }
-        }
+        Ordering::Equal
     }
-    Ordering::Equal
+}
+
+impl PartialOrd for Packet {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 fn main() -> Result<()> {
@@ -75,18 +76,10 @@ fn main() -> Result<()> {
     let div_b = Packet::List(vec![Packet::List(vec![Packet::Number(6)])]);
     packets.push(div_a.clone());
     packets.push(div_b.clone());
-    packets.sort_by(compare);
+    packets.sort();
 
-    let mut i_a = 0;
-    let mut i_b = 0;
-    for (i, p) in packets.iter().enumerate() {
-        if p == &div_a {
-            i_a = i + 1;
-        }
-        if p == &div_b {
-            i_b = i + 1;
-        }
-    }
+    let i_a = packets.iter().position(|p| p == &div_a).unwrap() + 1;
+    let i_b = packets.iter().position(|p| p == &div_b).unwrap() + 1;
     println!("{}", i_a * i_b);
     Ok(())
 }
