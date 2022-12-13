@@ -70,8 +70,8 @@ fn main() -> Result<()> {
         packets.push(first);
         packets.push(second);
     }
-    let div_a = Packet::List(vec![Packet::List(vec![Packet::Number(2)])]);
-    let div_b = Packet::List(vec![Packet::List(vec![Packet::Number(6)])]);
+    let div_a: Packet = serde_json::from_str("[[2]]")?;
+    let div_b: Packet = serde_json::from_str("[[6]]")?;
     packets.push(div_a.clone());
     packets.push(div_b.clone());
     packets.sort();
