@@ -13,6 +13,9 @@ itertools = "0.10.5"
 text_io = "0.1.12"
 scan-rules = "0.2.0"
 json = "0.12.4"
+serde_json = "1.0"
+serde = { version = "1.0.150", features = ["derive"] }
+
 
 [[bin]]
 name = "01a_calorie_counting"

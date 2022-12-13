@@ -4,13 +4,21 @@
 use anyhow::Result;
 use itertools::EitherOrBoth::*;
 use itertools::Itertools;
-use json::JsonValue;
 use std::cmp::Ordering;
 use std::io::BufRead;
+use serde::{Deserialize, Serialize};
 
-fn compare(first: &JsonValue, second: &JsonValue) -> Ordering {
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[serde(untagged)]
+enum Packet {
+    Number(i32),
+    List(Vec<Packet>)
+}
+
+fn compare(first: &Packet, second: &Packet) -> Ordering {
     match (first, second) {
-        (JsonValue::Number(a), JsonValue::Number(b)) => {
+        (Packet::Number(a), Packet::Number(b)) => {
             let a: f64 = (*a).into();
             let b: f64 = (*b).into();
 
@@ -18,7 +26,7 @@ fn compare(first: &JsonValue, second: &JsonValue) -> Ordering {
                 return a.total_cmp(&b);
             }
         }
-        (JsonValue::Array(a), JsonValue::Array(b)) => {
+        (Packet::List(a), Packet::List(b)) => {
             for pair in a.iter().zip_longest(b) {
                 match pair {
                     Both(l, r) => {
@@ -32,26 +40,23 @@ fn compare(first: &JsonValue, second: &JsonValue) -> Ordering {
                 }
             }
         }
-        (JsonValue::Array(a), JsonValue::Number(b)) => {
+        (al @ Packet::List(_a), Packet::Number(b)) => {
             let res = compare(
-                &JsonValue::Array(a.to_vec()),
-                &JsonValue::Array(vec![JsonValue::Number(*b)]),
+                al,
+                &Packet::List(vec![Packet::Number(*b)]),
             );
             if res.is_ne() {
                 return res;
             }
         }
-        (JsonValue::Number(a), JsonValue::Array(b)) => {
+        (Packet::Number(a), bl @ Packet::List(_b)) => {
             let res = compare(
-                &JsonValue::Array(vec![JsonValue::Number(*a)]),
-                &JsonValue::Array(b.to_vec()),
+                &Packet::List(vec![Packet::Number(*a)]),
+                bl
             );
             if res.is_ne() {
                 return res;
             }
-        }
-        (a, b) => {
-            panic!("unexpected value {} {}", a, b);
         }
     }
     Ordering::Equal
@@ -63,16 +68,14 @@ fn main() -> Result<()> {
     for pair in stdin.lock().lines().chunks(3).into_iter() {
         let pair: Vec<_> = pair.collect();
 
-        let first = pair[0].as_ref().unwrap().to_owned();
-        let first = json::parse(&first)?;
-        let second = pair[1].as_ref().unwrap().to_owned();
-        let second = json::parse(&second)?;
+        let first: Packet = serde_json::from_str(pair[0].as_ref().unwrap())?;
+        let second: Packet = serde_json::from_str(pair[1].as_ref().unwrap())?;
 
         packets.push(first);
         packets.push(second);
     }
-    let div_a = json::parse("[[2]]")?;
-    let div_b = json::parse("[[6]]")?;
+    let div_a = Packet::List(vec![Packet::List(vec![Packet::Number(2)])]);
+    let div_b = Packet::List(vec![Packet::List(vec![Packet::Number(6)])]);
     packets.push(div_a.clone());
     packets.push(div_b.clone());
     packets.sort_by(compare);
