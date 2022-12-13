@@ -12,6 +12,7 @@ regex = "1.7.0"
 itertools = "0.10.5"
 text_io = "0.1.12"
 scan-rules = "0.2.0"
+json = "0.12.4"
 
 [[bin]]
 name = "01a_calorie_counting"
@@ -108,3 +109,11 @@ path = "src/12a.rs"
 [[bin]]
 name = "12b"
 path = "src/12b.rs"
+
+[[bin]]
+name = "13a"
+path = "src/13a.rs"
+
+[[bin]]
+name = "13b"
+path = "src/13b.rs"
