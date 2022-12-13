@@ -63,11 +63,9 @@ impl PartialOrd for Packet {
 fn main() -> Result<()> {
     let stdin = std::io::stdin();
     let mut sum: usize= 0;
-    for (i, pair) in stdin.lock().lines().chunks(3).into_iter().enumerate() {
-        let pair: Vec<_> = pair.collect();
-
-        let first: Packet = serde_json::from_str(pair[0].as_ref().unwrap())?;
-        let second: Packet = serde_json::from_str(pair[1].as_ref().unwrap())?;
+    for (i, mut pair) in stdin.lock().lines().chunks(3).into_iter().enumerate() {
+        let first: Packet = serde_json::from_str(pair.next().unwrap()?.as_ref())?;
+        let second: Packet = serde_json::from_str(pair.next().unwrap()?.as_ref())?;
 
         if first.cmp(&second).is_le() {
             sum += i + 1;
