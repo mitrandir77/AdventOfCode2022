@@ -19,11 +19,8 @@ enum Packet {
 fn compare(first: &Packet, second: &Packet) -> Ordering {
     match (first, second) {
         (Packet::Number(a), Packet::Number(b)) => {
-            let a: f64 = (*a).into();
-            let b: f64 = (*b).into();
-
             if a != b {
-                return a.total_cmp(&b);
+                return a.cmp(b);
             }
         }
         (Packet::List(a), Packet::List(b)) => {
