@@ -2,6 +2,7 @@
 // (c) 2002 Mateusz Kwapich
 
 use anyhow::Result;
+use fixedbitset::FixedBitSet;
 use gray_codes::Subsets;
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -14,31 +15,66 @@ use std::str;
 
 #[macro_use]
 extern crate scan_rules;
-use smallset::SmallSet;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct Id(u8, u8);
+struct ValveId(u16);
 
-impl From<&str> for Id {
+impl From<&str> for ValveId {
     fn from(id: &str) -> Self {
-        Self(
-            *id.as_bytes().first().unwrap(),
-            *id.as_bytes().get(1).unwrap(),
-        )
+        let a = *id.as_bytes().first().unwrap() as u16 - 'A' as u16;
+        let b = *id.as_bytes().get(1).unwrap() as u16- 'A' as u16;
+        Self(a *26 + b)
     }
 }
 
-impl fmt::Debug for Id {
+impl fmt::Debug for ValveId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(str::from_utf8(&[self.0, self.1]).unwrap())
+        let a = self.0 /26;
+        let b = self.0%26;
+        f.write_str(str::from_utf8(&[a as u8, b as u8]).unwrap())
     }
+}
+
+struct ValveIdSet(FixedBitSet);
+
+impl ValveIdSet {
+    pub fn new() -> Self {
+        Self(FixedBitSet::with_capacity(26*26))
+    }
+
+    pub fn from_vec(vec: Vec<&ValveId>) -> Self {
+        let mut set = Self::new();
+        for v in vec {
+            set.insert(*v);
+        }
+        set
+    }
+
+    #[inline(always)]
+    pub fn insert(&mut self, value: ValveId) {
+        self.0.insert(value.0 as usize)
+    }
+
+    #[inline(always)]
+    pub fn remove(&mut self, value: &ValveId) {
+        self.0.set(value.0 as usize, false);
+    }
+
+    #[inline(always)]
+    pub fn contains(&mut self, value: &ValveId) -> bool{
+        self.0.contains(value.0 as usize)
+    }
+    
+    // pub fn iter(&self) -> impl Iterator + '_{
+    //     self.0.ones()
+    // }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
 struct Valve {
-    id: Id,
+    id: ValveId,
     flow_rate: i64,
-    edges: Vec<Id>,
+    edges: Vec<ValveId>,
 }
 
 fn main() -> Result<()> {
@@ -95,7 +131,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let count_release = |time_left: i64, cur: Id, candidate: Id| {
+    let count_release = |time_left: i64, cur: ValveId, candidate: ValveId| {
         let time_consumed = dist[&(cur, candidate)] + 1;
         let time_left = time_left - time_consumed;
         (valves[&candidate].flow_rate * time_left, time_left)
@@ -108,15 +144,15 @@ fn main() -> Result<()> {
         .collect();
 
     fn visit<T>(
-        cur: Id,
+        cur: ValveId,
         time_left: i64,
-        visited: &mut SmallSet<[Id; 14]>,
+        visited: &mut ValveIdSet,
         cur_score: i64,
-        valves_to_consider: &Vec<Id>,
+        valves_to_consider: &Vec<ValveId>,
         count_release: &T,
     ) -> i64
     where
-        T: Fn(i64, Id, Id) -> (i64, i64) + Send + Sync,
+        T: Fn(i64, ValveId, ValveId) -> (i64, i64) + Send + Sync,
     {
         visited.insert(cur);
 
@@ -140,21 +176,21 @@ fn main() -> Result<()> {
         res
     }
 
-    let result = Subsets::<Id, Vec<&Id>>::of(&non_zero)
+    let result = Subsets::<ValveId, Vec<&ValveId>>::of(&non_zero)
         .filter(|s| s.len() <= 13)
         .par_bridge()
         .map(|s| {
             visit(
                 valves[&"AA".into()].id,
                 26,
-                &mut SmallSet::new(),
+                &mut ValveIdSet::new(),
                 0,
                 &s.iter().map(|e| **e).collect(),
                 &count_release,
             ) + visit(
                 valves[&"AA".into()].id,
                 26,
-                &mut SmallSet::from_iter(s.iter().map(|e| **e)),
+                &mut ValveIdSet::from_vec(s),
                 0,
                 &non_zero,
                 &count_release,

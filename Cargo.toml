@@ -18,6 +18,7 @@ serde = { version = "1.0.150", features = ["derive"] }
 smallset = "0.1.1"
 rayon = "1.5"
 gray-codes = "0.1.1"
+fixedbitset = "0.4.2"
 
 [[bin]]
 name = "01a_calorie_counting"
