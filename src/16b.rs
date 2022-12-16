@@ -180,19 +180,21 @@ fn main() -> Result<()> {
         .filter(|s| s.len() <= 13)
         .par_bridge()
         .map(|s| {
-            visit(
+            let me = visit(
                 valves[&"AA".into()].id,
                 26,
                 &mut ValveIdSet::new(),
                 0,
                 &s.iter().map(|e| **e).collect(),
                 &count_release,
-            ) + visit(
+            );
+            let valves_to_consider: Vec<_> = non_zero.iter().filter(|v| !s.contains(v)).cloned().collect();
+            visit(
                 valves[&"AA".into()].id,
                 26,
                 &mut ValveIdSet::from_vec(s),
-                0,
-                &non_zero,
+                me,
+                &valves_to_consider,
                 &count_release,
             )
         })
