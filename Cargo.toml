@@ -15,7 +15,9 @@ scan-rules = "0.2.0"
 json = "0.12.4"
 serde_json = "1.0"
 serde = { version = "1.0.150", features = ["derive"] }
-
+smallset = "0.1.1"
+rayon = "1.5"
+gray-codes = "0.1.1"
 
 [[bin]]
 name = "01a_calorie_counting"
@@ -136,3 +138,11 @@ path = "src/15a.rs"
 [[bin]]
 name = "15b"
 path = "src/15b.rs"
+
+[[bin]]
+name = "16a"
+path = "src/16a.rs"
+
+[[bin]]
+name = "16b"
+path = "src/16b.rs"
