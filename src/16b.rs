@@ -131,11 +131,6 @@ fn main() -> Result<()> {
         }
     }
 
-    let count_release = |time_left: i64, cur: ValveId, candidate: ValveId| {
-        let time_consumed = dist[&(cur, candidate)] + 1;
-        let time_left = time_left - time_consumed;
-        (valves[&candidate].flow_rate * time_left, time_left)
-    };
 
     let non_zero: Vec<_> = valves
         .values()
@@ -143,23 +138,23 @@ fn main() -> Result<()> {
         .map(|v| v.id)
         .collect();
 
-    fn visit<T>(
+    fn visit (
         cur: ValveId,
         time_left: i64,
         visited: &mut ValveIdSet,
         cur_score: i64,
         valves_to_consider: &Vec<ValveId>,
-        count_release: &T,
-    ) -> i64
-    where
-        T: Fn(i64, ValveId, ValveId) -> (i64, i64) + Send + Sync,
-    {
+        dist: &BTreeMap::<(ValveId, ValveId), i64>,
+        valves: &BTreeMap<ValveId, Valve>,
+    ) -> i64 {
         visited.insert(cur);
 
         let mut res = cur_score;
         for v in valves_to_consider.iter() {
             if !visited.contains(v) {
-                let (release_value, new_time_left) = count_release(time_left, cur, *v);
+                let time_consumed = dist[&(cur, *v)] + 1;
+                let new_time_left = time_left - time_consumed;
+                let release_value = valves[v].flow_rate * new_time_left;
                 if new_time_left > 0 {
                     res = res.max(visit(
                         *v,
@@ -167,7 +162,8 @@ fn main() -> Result<()> {
                         visited,
                         cur_score + release_value,
                         valves_to_consider,
-                        count_release,
+                        dist,
+                        valves
                     ))
                 }
             }
@@ -186,7 +182,8 @@ fn main() -> Result<()> {
                 &mut ValveIdSet::new(),
                 0,
                 &s.iter().map(|e| **e).collect(),
-                &count_release,
+                &dist,
+                &valves,
             );
             let valves_to_consider: Vec<_> = non_zero.iter().filter(|v| !s.contains(v)).cloned().collect();
             visit(
@@ -195,7 +192,8 @@ fn main() -> Result<()> {
                 &mut ValveIdSet::from_vec(s),
                 me,
                 &valves_to_consider,
-                &count_release,
+                &dist,
+                &valves,
             )
         })
         .max()
