@@ -10,6 +10,7 @@ use scan_rules::scan;
 use scan_rules::scanner::Word;
 use std::collections::BTreeMap;
 use std::fmt;
+use std::hash::Hash;
 use std::io::BufRead;
 use std::str;
 
@@ -22,24 +23,25 @@ struct ValveId(u16);
 impl From<&str> for ValveId {
     fn from(id: &str) -> Self {
         let a = *id.as_bytes().first().unwrap() as u16 - 'A' as u16;
-        let b = *id.as_bytes().get(1).unwrap() as u16- 'A' as u16;
-        Self(a *26 + b)
+        let b = *id.as_bytes().get(1).unwrap() as u16 - 'A' as u16;
+        Self(a * 26 + b)
     }
 }
 
 impl fmt::Debug for ValveId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let a = self.0 /26;
-        let b = self.0%26;
+        let a = self.0 / 26;
+        let b = self.0 % 26;
         f.write_str(str::from_utf8(&[a as u8, b as u8]).unwrap())
     }
 }
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ValveIdSet(FixedBitSet);
 
 impl ValveIdSet {
     pub fn new() -> Self {
-        Self(FixedBitSet::with_capacity(26*26))
+        Self(FixedBitSet::with_capacity(26 * 26))
     }
 
     pub fn from_vec(vec: Vec<&ValveId>) -> Self {
@@ -61,10 +63,10 @@ impl ValveIdSet {
     }
 
     #[inline(always)]
-    pub fn contains(&mut self, value: &ValveId) -> bool{
+    pub fn contains(&mut self, value: &ValveId) -> bool {
         self.0.contains(value.0 as usize)
     }
-    
+
     // pub fn iter(&self) -> impl Iterator + '_{
     //     self.0.ones()
     // }
@@ -131,40 +133,39 @@ fn main() -> Result<()> {
         }
     }
 
-
     let non_zero: Vec<_> = valves
         .values()
         .filter(|v| (v.flow_rate > 0))
         .map(|v| v.id)
         .collect();
 
-    fn visit (
+    fn visit(
         cur: ValveId,
         time_left: i64,
         visited: &mut ValveIdSet,
-        cur_score: i64,
         valves_to_consider: &Vec<ValveId>,
-        dist: &BTreeMap::<(ValveId, ValveId), i64>,
+        dist: &BTreeMap<(ValveId, ValveId), i64>,
         valves: &BTreeMap<ValveId, Valve>,
     ) -> i64 {
         visited.insert(cur);
 
-        let mut res = cur_score;
+        let mut res = 0;
         for v in valves_to_consider.iter() {
             if !visited.contains(v) {
                 let time_consumed = dist[&(cur, *v)] + 1;
                 let new_time_left = time_left - time_consumed;
                 let release_value = valves[v].flow_rate * new_time_left;
                 if new_time_left > 0 {
-                    res = res.max(visit(
-                        *v,
-                        new_time_left,
-                        visited,
-                        cur_score + release_value,
-                        valves_to_consider,
-                        dist,
-                        valves
-                    ))
+                    res = res.max(
+                        visit(
+                            *v,
+                            new_time_left,
+                            visited,
+                            valves_to_consider,
+                            dist,
+                            valves,
+                        ) + release_value,
+                    )
                 }
             }
         }
@@ -180,21 +181,24 @@ fn main() -> Result<()> {
                 valves[&"AA".into()].id,
                 26,
                 &mut ValveIdSet::new(),
-                0,
                 &s.iter().map(|e| **e).collect(),
                 &dist,
                 &valves,
             );
-            let valves_to_consider: Vec<_> = non_zero.iter().filter(|v| !s.contains(v)).cloned().collect();
-            visit(
+            let valves_to_consider: Vec<_> = non_zero
+                .iter()
+                .filter(|v| !s.contains(v))
+                .cloned()
+                .collect();
+            let elephant = visit(
                 valves[&"AA".into()].id,
                 26,
                 &mut ValveIdSet::from_vec(s),
-                me,
                 &valves_to_consider,
                 &dist,
                 &valves,
-            )
+            );
+            me + elephant
         })
         .max()
         .unwrap();
