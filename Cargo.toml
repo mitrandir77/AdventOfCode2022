@@ -166,7 +166,6 @@ path = "src/18a.rs"
 name = "18b"
 path = "src/18b.rs"
 
-
 [[bin]]
 name = "19a"
 path = "src/19a.rs"
@@ -175,7 +174,6 @@ path = "src/19a.rs"
 name = "19b"
 path = "src/19b.rs"
 
-
 [[bin]]
 name = "20a"
 path = "src/20a.rs"
@@ -183,3 +181,11 @@ path = "src/20a.rs"
 [[bin]]
 name = "20b"
 path = "src/20b.rs"
+
+[[bin]]
+name = "21a"
+path = "src/21a.rs"
+
+[[bin]]
+name = "21b"
+path = "src/21b.rs"
