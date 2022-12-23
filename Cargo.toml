@@ -18,6 +18,7 @@ serde = { version = "1.0.150", features = ["derive"] }
 smallset = "0.1.1"
 rayon = "1.5"
 gray-codes = "0.1.1"
+multimap = "0.8.3"
 strum = { version = "0.24", features = ["derive"] }
 
 fixedbitset = "0.4.2"
@@ -193,3 +194,11 @@ path = "src/21b.rs"
 [[bin]]
 name = "22a"
 path = "src/22a.rs"
+
+[[bin]]
+name = "23a"
+path = "src/23a.rs"
+
+[[bin]]
+name = "23b"
+path = "src/23b.rs"
