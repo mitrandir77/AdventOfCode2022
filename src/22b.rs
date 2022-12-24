@@ -1,7 +1,5 @@
 // Advent of Code 2022
 // (c) 2002 Mateusz Kwapich
-#![feature(iter_intersperse)]
-
 use anyhow::Result;
 use std::io::prelude::*;
 
@@ -12,6 +10,19 @@ enum Tile {
     Missing,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+impl Point {
+    fn new(x: i64, y: i64) -> Self {
+        Self { x, y }
+    }
+}
+
+
 struct Map {
     tiles: Vec<Vec<Tile>>,
     xsize: i64,
@@ -19,10 +30,10 @@ struct Map {
 }
 
 impl Map {
-    fn get(&self, x: i64, y: i64) -> Tile {
-        if (0..self.tiles.len()).contains(&(y as usize)) {
-            if (0..self.tiles[y as usize].len()).contains(&(x as usize)) {
-                self.tiles[y as usize][x as usize]
+    fn get(&self, p: Point) -> Tile {
+        if (0..self.tiles.len()).contains(&(p.y as usize)) {
+            if (0..self.tiles[p.y as usize].len()).contains(&(p.x as usize)) {
+                self.tiles[p.y as usize][p.x as usize]
             } else {
                 Tile::Missing
             }
@@ -31,10 +42,11 @@ impl Map {
         }
     }
 
-    fn get_wrapping(&self, x: i64, y: i64) -> Tile {
-        let new_x = (x + self.xsize) % self.xsize;
-        let new_y = (y + self.ysize) % self.ysize;
-        self.get(new_x, new_y)
+    fn get_wrapping(&self, p: Point) -> Tile {
+        self.get(Point {
+            x: (p.x + self.xsize) % self.xsize,
+            y: (p.y + self.ysize) % self.ysize,
+        })
     }
 }
 
@@ -82,10 +94,8 @@ impl Facing {
         }
     }
 
-    fn step(&self, x: i64, y: i64) -> (i64, i64) {
-        let mx = x + self.x;
-        let my = y + self.y;
-        (mx, my)
+    fn step(&self, p: Point) -> Point {
+        Point::new(p.x + self.x, p.y + self.y)
     }
 }
 
@@ -93,11 +103,11 @@ impl Facing {
 // Walk along edges of flat cube until the edge that's ajacent in 3D is found.
 fn walk(
     map: &Map,
-    (mut x, mut y): (i64, i64),
+    mut p_inside: Point,
     mut facing: Facing,
     turn_inside: fn(&mut Facing) -> (),
     turn_outside: fn(&mut Facing) -> (),
-) -> Option<(Facing, (i64, i64))> {
+) -> Option<(Facing, Point)> {
     #[derive(PartialEq, Eq, Debug)]
     enum WalkAction {
         Corner,
@@ -106,28 +116,28 @@ fn walk(
     }
     use WalkAction::*;
 
-    let mut x2 = x + facing.x;
-    let mut y2 = y + facing.y;
+    let mut p_outside = facing.step(p_inside);
 
     turn_inside(&mut facing);
     let mut actions = vec![];
     let mut reverse = None;
     for i in 0.. {
-        let (nx, ny) = facing.step(x, y);
-        let (nx2, ny2) = facing.step(x2, y2);
+        let new_p_inside = facing.step(p_inside);
+        let new_p_outside = facing.step(p_outside);
 
-        if map.get(nx, ny) == Tile::Missing && map.get(nx2, ny2) == Tile::Missing {
+        if map.get(new_p_inside) == Tile::Missing && map.get(new_p_outside) == Tile::Missing {
             turn_inside(&mut facing);
-            (x2, y2) = (nx, ny);
+            p_outside = new_p_inside;
             actions.push(Corner);
-        } else if map.get(nx, ny) != Tile::Missing && map.get(nx2, ny2) != Tile::Missing {
+        } else if map.get(new_p_inside) != Tile::Missing && map.get(new_p_outside) != Tile::Missing
+        {
             turn_outside(&mut facing);
-            (x, y) = (nx2, ny2);
+            p_inside = new_p_outside;
             actions.push(ReverseCorner);
             reverse = Some(i);
         } else {
-            (x, y) = (nx, ny);
-            (x2, y2) = (nx2, ny2);
+            p_inside = new_p_inside;
+            p_outside = new_p_outside;
             actions.push(Forward);
         }
 
@@ -139,7 +149,7 @@ fn walk(
             }
             if i == 2 * rev {
                 turn_inside(&mut facing);
-                return Some((facing, (x, y)));
+                return Some((facing, p_inside));
             }
         }
     }
@@ -214,9 +224,9 @@ fn main() -> Result<()> {
     }
 
     // Find starting point.
-    let (mut x, mut y) = (0, 0);
-    while map.get(x, y) != Tile::Open {
-        x += 1;
+    let mut p = Point::new(0,0);
+    while map.get(p) != Tile::Open {
+        p.x += 1;
     }
     let mut facing = Facing::right();
 
@@ -230,44 +240,43 @@ fn main() -> Result<()> {
                 facing.turn_right();
             }
             Direction::Foward(mut steps) => loop {
-                let (mut new_x, mut new_y) = facing.step(x, y);
+                let mut new = facing.step(p);
                 let mut new_facing = facing;
 
-                let mut tile = if (0..=xsize).contains(&new_x) && (0..=ysize).contains(&new_y) {
-                    map.get(new_x, new_y)
-                } else if !(0..=xsize).contains(&new_x) && xsize % 4 == 0 {
+                let mut tile = if (0..=xsize).contains(&new.x) && (0..=ysize).contains(&new.y) {
+                    map.get(new)
+                } else if !(0..=xsize).contains(&new.x) && xsize % 4 == 0 {
                     // Special case for maps that have 4 sides flat in a row
-                    map.get_wrapping(new_x, new_y)
-                } else if !(0..=ysize).contains(&new_y) && ysize % 4 == 0 {
+                    map.get_wrapping(new)
+                } else if !(0..=ysize).contains(&new.y) && ysize % 4 == 0 {
                     // Special case for maps that have 4 sides flat in a column
-                    map.get_wrapping(new_x, new_y)
+                    map.get_wrapping(new)
                 } else {
                     Tile::Missing
                 };
 
                 if tile == Tile::Missing {
-                    let counter = walk(&map, (x, y), facing, Facing::turn_left, Facing::turn_right);
-                    let clock = walk(&map, (x, y), facing, Facing::turn_right, Facing::turn_left);
+                    let counter = walk(&map, p, facing, Facing::turn_left, Facing::turn_right);
+                    let clock = walk(&map, p, facing, Facing::turn_right, Facing::turn_left);
 
                     if counter.is_some() && clock.is_some() {
                         panic!("both walks worked!");
                     }
-                    (new_facing, (new_x, new_y)) = if let Some(res) = counter {
+                    (new_facing, new) = if let Some(res) = counter {
                         res
                     } else if let Some(res) = clock {
                         res
                     } else {
                         panic!("neither walk worked!");
                     };
-                    tile = map.get(new_x, new_y);
+                    tile = map.get(new);
                 }
 
                 if tile == Tile::Rock {
                     break;
                 }
                 if tile == Tile::Open {
-                    x = new_x;
-                    y = new_y;
+                    p = new;
                     facing = new_facing;
                     steps -= 1;
                     if steps == 0 {
@@ -278,8 +287,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let res = 1000 * (y + 1) + 4 * (x + 1) + facing.as_number();
-    dbg!(facing, x, y);
+    let res = 1000 * (p.y + 1) + 4 * (p.x + 1) + facing.as_number();
     println!("{res}");
     Ok(())
 }
