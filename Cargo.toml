@@ -17,6 +17,7 @@ serde_json = "1.0"
 serde = { version = "1.0.150", features = ["derive"] }
 smallset = "0.1.1"
 rayon = "1.5"
+radix_fmt = "1.0.0"
 gray-codes = "0.1.1"
 multimap = "0.8.3"
 strum = { version = "0.24", features = ["derive"] }
@@ -214,3 +215,7 @@ path = "src/24a.rs"
 [[bin]]
 name = "24b"
 path = "src/24b.rs"
+
+[[bin]]
+name = "25a"
+path = "src/25a.rs"
